@@ -61,3 +61,24 @@ app.get('/room/:roomCode', (req, res) => {
         res.status(404).json({ success: false, message: 'Room not found' });
     }
 });
+
+app.post('/start-game', (req, res) => {
+    const { roomCode } = req.body;
+    if (gameRooms[roomCode]) {
+        gameRooms[roomCode].status = 'started';
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ success: false, message: 'Room not found' });
+    }
+});
+
+app.get('/game-status/:roomCode', (req, res) => {
+    const roomCode = req.params.roomCode;
+    if (gameRooms[roomCode]) {
+        const status = gameRooms[roomCode].status || 'waiting';
+        res.json({ status });
+    } else {
+        res.status(404).json({ status: 'error', message: 'Room not found' });
+    }
+});
+
