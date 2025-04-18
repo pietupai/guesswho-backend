@@ -1,13 +1,27 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const cors = require('cors');
+
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: 'https://pietupai.github.io', // Salli pyynnöt tästä domainista
+        methods: ['GET', 'POST'], // Hyväksytyt HTTP-metodit
+    },
+});
 
+// CORS-asetukset Expressille
+app.use(cors({
+    origin: 'https://pietupai.github.io', // Salli vain tämän domainin pyynnöt
+    methods: ['GET', 'POST'],
+}));
+
+// HTTP POST-pyyntöjen käsittely
 app.use(express.json());
 
-const gameRooms = {}; // Tallennetaan huoneet ja niiden viestit
+const gameRooms = {}; // Pelihuoneiden tallennus
 
 // Luo huone
 app.post('/create-room', (req, res) => {
@@ -32,7 +46,7 @@ app.post('/join-room', (req, res) => {
         gameRooms[roomCode].players.push(playerName);
         console.log(`${playerName} joined room: ${roomCode}`);
         res.json({ success: true });
-        
+
         // Ilmoita kaikille pelaajista WebSocketilla
         io.to(roomCode).emit('playerJoined', gameRooms[roomCode].players);
     } else {
