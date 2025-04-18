@@ -1,131 +1,98 @@
 const express = require('express');
-const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-app.use(cors());
 app.use(express.json());
 
-// Pelihuoneiden tallennus muistiin
-const gameRooms = {};
-let latestRoomCode = ''; // Tallennetaan viimeisin luotu huonekoodi
+const gameRooms = {}; // Tallennetaan huoneet ja niiden viestit
 
-// Palvelimen käynnistys
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
-// Luo huone ja tallenna huonekoodi sekä hostin nimi
+// Luo huone
 app.post('/create-room', (req, res) => {
     const { hostName } = req.body;
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    gameRooms[roomCode] = { players: [hostName], messages: [], status: 'waiting' }; // Host lisätään pelaajalistaan
-    latestRoomCode = roomCode; // Päivitetään viimeisin huonekoodi
-    console.log(`Room created: ${roomCode} by host: ${hostName}`);
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase(); // Satunnainen huonekoodi
+
+    gameRooms[roomCode] = {
+        hostName,
+        players: [hostName],
+        messages: [],
+    };
+
+    console.log(`Room created: ${roomCode}`);
     res.json({ success: true, roomCode });
 });
 
-// Palauta viimeisin huonekoodi
-app.get('/latest-room', (req, res) => {
-    if (latestRoomCode) {
-        console.log(`Latest room code found: ${latestRoomCode}`);
-        res.json({ success: true, roomCode: latestRoomCode });
-    } else {
-        console.log('No active room available.');
-        res.status(404).json({ success: false, message: 'No active room available.' });
-    }
-});
-
-// Liity huoneeseen pelaajana
+// Liity huoneeseen
 app.post('/join-room', (req, res) => {
     const { roomCode, playerName } = req.body;
 
     if (gameRooms[roomCode]) {
-        const players = gameRooms[roomCode].players;
-
-        if (!players.includes(playerName)) { // Estetään duplikaatit
-            players.push(playerName);
-            console.log(`Player ${playerName} added to room ${roomCode}`);
-            res.json({ success: true });
-        } else {
-            console.log(`Player ${playerName} already exists in room ${roomCode}`);
-            res.status(400).json({ success: false, message: 'Player already joined.' });
-        }
+        gameRooms[roomCode].players.push(playerName);
+        console.log(`${playerName} joined room: ${roomCode}`);
+        res.json({ success: true });
+        
+        // Ilmoita kaikille pelaajista WebSocketilla
+        io.to(roomCode).emit('playerJoined', gameRooms[roomCode].players);
     } else {
         console.log(`Room not found: ${roomCode}`);
         res.status(404).json({ success: false, message: 'Room not found.' });
     }
 });
 
-// Pelaajalistan haku
-app.get('/room/:roomCode', (req, res) => {
-    const roomCode = req.params.roomCode;
-
-    if (gameRooms[roomCode]) {
-        res.json({ success: true, players: gameRooms[roomCode].players });
-    } else {
-        console.log(`Room not found: ${roomCode}`);
-        res.status(404).json({ success: false, message: 'Room not found.' });
-    }
-});
-
-// Käynnistä peli
+// Aloita peli
 app.post('/start-game', (req, res) => {
     const { roomCode } = req.body;
 
     if (gameRooms[roomCode]) {
-        gameRooms[roomCode].status = 'started'; // Päivitetään pelin tila
-        console.log(`Game started in room ${roomCode}`);
+        console.log(`Game started in room: ${roomCode}`);
         res.json({ success: true });
+
+        // Ilmoita kaikille pelaajille, että peli alkoi
+        io.to(roomCode).emit('gameStarted', { message: 'Game has started!' });
     } else {
         console.log(`Room not found: ${roomCode}`);
         res.status(404).json({ success: false, message: 'Room not found.' });
     }
 });
 
-// Pelin tilan tarkistaminen
-app.get('/game-status/:roomCode', (req, res) => {
-    const roomCode = req.params.roomCode;
+// WebSocket yhteys
+io.on('connection', (socket) => {
+    console.log('User connected');
 
-    if (gameRooms[roomCode]) {
-        const status = gameRooms[roomCode].status || 'waiting';
-        res.json({ status });
-    } else {
-        console.log(`Room not found: ${roomCode}`);
-        res.status(404).json({ status: 'error', message: 'Room not found.' });
-    }
-});
-
-// Viestin lähetys chatissa
-app.post('/send-message', (req, res) => {
-    const { roomCode, message, senderName } = req.body;
-
-    if (gameRooms[roomCode]) {
-        if (!gameRooms[roomCode].messages) {
-            gameRooms[roomCode].messages = [];
+    // Liity huoneeseen
+    socket.on('joinRoom', (roomCode) => {
+        if (gameRooms[roomCode]) {
+            socket.join(roomCode);
+            console.log(`User joined room: ${roomCode}`);
+        } else {
+            console.log(`Room not found: ${roomCode}`);
         }
-        // Tallennetaan viesti oikeassa muodossa
-        gameRooms[roomCode].messages.push({ senderName, message });
-        console.log(`Message from ${senderName} in room ${roomCode}: ${message}`);
-        res.json({ success: true });
-    } else {
-        console.log(`Room not found: ${roomCode}`);
-        res.status(404).json({ success: false, message: 'Room not found.' });
-    }
+    });
+
+    // Lähetä viesti
+    socket.on('sendMessage', (data) => {
+        const { roomCode, senderName, message } = data;
+
+        if (gameRooms[roomCode]) {
+            gameRooms[roomCode].messages.push({ senderName, message });
+            console.log(`Message from ${senderName} in room ${roomCode}: ${message}`);
+
+            // Lähetä viesti kaikille huoneen käyttäjille
+            io.to(roomCode).emit('newMessage', { senderName, message });
+        } else {
+            console.log(`Room not found: ${roomCode}`);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
 });
 
-
-// Viestien haku chatissa
-app.get('/get-messages/:roomCode', (req, res) => {
-    const roomCode = req.params.roomCode;
-    console.log(`Fetching messages for room: ${roomCode}`); // Lokita pyyntö
-
-    if (gameRooms[roomCode]) {
-        const messages = gameRooms[roomCode].messages || [];
-        res.json({ success: true, messages });
-    } else {
-        console.log(`Room not found: ${roomCode}`);
-        res.status(404).json({ success: false, message: 'Room not found.' });
-    }
+// Käynnistä palvelin
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
-
