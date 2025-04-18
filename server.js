@@ -123,6 +123,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('chatMessage', ({ roomCode, senderName, message }) => {
+        if (gameRooms[roomCode]) {
+            console.log(`Message received in room ${roomCode}: ${message}`);
+            io.to(roomCode).emit('chatMessage', { senderName, message }); // Broadcast to room
+        } else {
+            console.error(`Room not found for message: ${roomCode}`);
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
