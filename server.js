@@ -37,17 +37,23 @@ app.get('/latest-room', (req, res) => {
 // Lokitus: Pelaajan liittyminen
 app.post('/join-room', (req, res) => {
     const { roomCode, playerName } = req.body;
-    console.log(`Join request - Room: ${roomCode}, Player: ${playerName}`); // Loggaa pyyntö
 
     if (gameRooms[roomCode]) {
-        gameRooms[roomCode].players.push(playerName);
-        console.log(`Player ${playerName} added to room ${roomCode}`); // Loggaa pelaajan lisäys
-        res.json({ success: true });
+        const players = gameRooms[roomCode].players;
+        if (!players.includes(playerName)) { // Tarkistaa, onko nimi jo listassa
+            players.push(playerName);
+            console.log(`Player ${playerName} added to room ${roomCode}`);
+            res.json({ success: true });
+        } else {
+            console.log(`Player ${playerName} already exists in room ${roomCode}`);
+            res.status(400).json({ success: false, message: 'Player already joined.' });
+        }
     } else {
-        console.log(`Room not found: ${roomCode}`); // Lokitus, jos huonetta ei löydy
-        res.status(404).json({ success: false, message: 'Room not found' });
+        console.log(`Room not found: ${roomCode}`);
+        res.status(404).json({ success: false, message: 'Room not found.' });
     }
 });
+
 
 // Lokitus: Pelaajalistan hakeminen
 app.get('/room/:roomCode', (req, res) => {
