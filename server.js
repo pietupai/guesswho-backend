@@ -7,6 +7,7 @@ app.use(express.json());
 
 // Pelihuoneiden tallennus muistiin
 const gameRooms = {};
+let latestRoomCode = ''; // Tallennetaan viimeisin luotu huonekoodi
 
 // Palvelimen käynnistys
 const PORT = process.env.PORT || 10000;
@@ -17,9 +18,19 @@ app.listen(PORT, () => {
 // Luo huone ja tallenna huonekoodi
 app.post('/create-room', (req, res) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    gameRooms[roomCode] = { players: [], messages: [], status: 'waiting' }; // Lisätään viestit ja tila
+    gameRooms[roomCode] = { players: [], messages: [], status: 'waiting' };
+    latestRoomCode = roomCode; // Päivitetään viimeisin huonekoodi
     console.log(`Room created: ${roomCode}`);
     res.json({ success: true, roomCode });
+});
+
+// Palauta viimeisin huonekoodi
+app.get('/latest-room', (req, res) => {
+    if (latestRoomCode) {
+        res.json({ success: true, roomCode: latestRoomCode });
+    } else {
+        res.status(404).json({ success: false, message: 'No active room available.' });
+    }
 });
 
 // Liity huoneeseen pelaajana
@@ -29,7 +40,7 @@ app.post('/join-room', (req, res) => {
     if (gameRooms[roomCode]) {
         const players = gameRooms[roomCode].players;
 
-        if (!players.includes(playerName)) { // Estää duplikaatit
+        if (!players.includes(playerName)) { // Estetään duplikaatit
             players.push(playerName);
             console.log(`Player ${playerName} added to room ${roomCode}`);
             res.json({ success: true });
