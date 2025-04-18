@@ -65,21 +65,41 @@ app.post('/join-room', (req, res) => {
 });
 
 // Aloita peli
-app.post('/start-game', (req, res) => {
-    const { roomCode } = req.body;
-    console.log(`Start-game route called for Room Code: ${roomCode}`); // Log incoming room code
-
-    if (gameRooms[roomCode]) {
-        console.log(`Game found for Room Code: ${roomCode}`);
-        // Game start logic here...
-        io.to(roomCode).emit('gameStarted', { message: 'Game has started!' });
-        res.json({ success: true });
-    } else {
-        console.error(`Room not found: ${roomCode}`); // Debug missing room code
-        res.status(404).json({ success: false, message: 'Room not found.' });
+function startGame() {
+    const roomCodeElement = document.getElementById('roomCode');
+    if (!roomCodeElement || !roomCodeElement.textContent.trim()) {
+        alert('Room code not found.');
+        return;
     }
-});
 
+    // Extract only the room code (strip the "Room Code: " prefix)
+    const roomCode = roomCodeElement.textContent.split(': ')[1]; 
+
+    const startButton = document.getElementById('startGameButton');
+    startButton.style.display = 'none'; // Hide the button after clicking
+
+    fetch('https://guesswho-backend.onrender.com/start-game', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ roomCode }), // Send only the raw room code
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Game started successfully!');
+            console.log(`Game started for room: ${roomCode}`);
+        } else {
+            alert(data.message || 'Failed to start the game.');
+            startButton.style.display = 'block'; // Show the button again if the request fails
+        }
+    })
+    .catch(error => {
+        console.error('Error starting the game:', error);
+        startButton.style.display = 'block'; // Show the button again in case of a network error
+    });
+}
 
 // Haetaan viimeisin huone
 app.get('/latest-room', (req, res) => {
