@@ -2,31 +2,33 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const bodyParser = require('body-parser'); // Lisätään body-parser
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'https://pietupai.github.io', // Salli pyynnöt tästä domainista
-        methods: ['GET', 'POST'], // Hyväksytyt HTTP-metodit
+        origin: 'https://pietupai.github.io',
+        methods: ['GET', 'POST'],
     },
 });
 
 // CORS-asetukset Expressille
 app.use(cors({
-    origin: 'https://pietupai.github.io', // Salli vain tämän domainin pyynnöt
+    origin: 'https://pietupai.github.io',
     methods: ['GET', 'POST'],
 }));
 
-// HTTP POST-pyyntöjen käsittely
-app.use(express.json());
+// Käytetään body-parseria HTTP POST-pyyntöjen käsittelyyn
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const gameRooms = {}; // Pelihuoneiden tallennus
 
 // Luo huone
 app.post('/create-room', (req, res) => {
     const { hostName } = req.body;
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase(); // Satunnainen huonekoodi
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     gameRooms[roomCode] = {
         hostName,
@@ -47,7 +49,6 @@ app.post('/join-room', (req, res) => {
         console.log(`${playerName} joined room: ${roomCode}`);
         res.json({ success: true });
 
-        // Ilmoita kaikille pelaajista WebSocketilla
         io.to(roomCode).emit('playerJoined', gameRooms[roomCode].players);
     } else {
         console.log(`Room not found: ${roomCode}`);
@@ -63,7 +64,6 @@ app.post('/start-game', (req, res) => {
         console.log(`Game started in room: ${roomCode}`);
         res.json({ success: true });
 
-        // Ilmoita kaikille pelaajille, että peli alkoi
         io.to(roomCode).emit('gameStarted', { message: 'Game has started!' });
     } else {
         console.log(`Room not found: ${roomCode}`);
@@ -75,7 +75,6 @@ app.post('/start-game', (req, res) => {
 io.on('connection', (socket) => {
     console.log('User connected');
 
-    // Liity huoneeseen
     socket.on('joinRoom', (roomCode) => {
         if (gameRooms[roomCode]) {
             socket.join(roomCode);
@@ -85,7 +84,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Lähetä viesti
     socket.on('sendMessage', (data) => {
         const { roomCode, senderName, message } = data;
 
@@ -93,7 +91,6 @@ io.on('connection', (socket) => {
             gameRooms[roomCode].messages.push({ senderName, message });
             console.log(`Message from ${senderName} in room ${roomCode}: ${message}`);
 
-            // Lähetä viesti kaikille huoneen käyttäjille
             io.to(roomCode).emit('newMessage', { senderName, message });
         } else {
             console.log(`Room not found: ${roomCode}`);
@@ -105,7 +102,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// Käynnistä palvelin
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
