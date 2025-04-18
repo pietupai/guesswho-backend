@@ -1,7 +1,7 @@
 {
   "name": "guesswho-backend",
   "version": "1.0.0",
-  "description": "A real-time game backend using WebSocket",
+  "description": "Backend for Guess Who game using WebSocket",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
