@@ -15,6 +15,7 @@ app.post('/create-room', (req, res) => {
 
 app.post('/join-room', (req, res) => {
     const { roomCode, playerName } = req.body;
+
     if (gameRooms[roomCode]) {
         gameRooms[roomCode].players.push(playerName);
         res.json({ success: true, players: gameRooms[roomCode].players });
@@ -22,5 +23,6 @@ app.post('/join-room', (req, res) => {
         res.status(404).json({ success: false, message: 'Room not found' });
     }
 });
+
 
 app.listen(10000, () => console.log('Server running on port 10000'));
