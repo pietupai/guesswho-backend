@@ -64,7 +64,7 @@ app.post('/join-room', (req, res) => {
     }
 });
 
-// Aloita peli
+// Haetaan viimeisin huone
 app.get('/latest-room', (req, res) => {
     console.log('Latest-room route called'); // Lokitus reitin alussa
     
@@ -74,16 +74,6 @@ app.get('/latest-room', (req, res) => {
         res.json({ success: true, roomCode: latestRoomCode });
     } else {
         console.log('No active room found'); // Lokitetaan virhetilanne
-        res.status(404).json({ success: false, message: 'No active room found.' });
-    }
-});
-
-// Haetaan viimeisin huone
-app.get('/latest-room', (req, res) => {
-    const latestRoomCode = Object.keys(gameRooms).pop(); // Haetaan viimeisin huonekoodi
-    if (latestRoomCode) {
-        res.json({ success: true, roomCode: latestRoomCode });
-    } else {
         res.status(404).json({ success: false, message: 'No active room found.' });
     }
 });
