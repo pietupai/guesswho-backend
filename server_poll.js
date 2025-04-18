@@ -65,20 +65,16 @@ app.post('/join-room', (req, res) => {
 });
 
 // Aloita peli
-app.post('/start-game', (req, res) => {
-    const { roomCode } = req.body;
-    if (!roomCode) {
-        return res.status(400).json({ success: false, message: 'Room code is required.' });
-    }
-
-    if (gameRooms[roomCode]) {
-        console.log(`Game started in room: ${roomCode}`);
-        res.json({ success: true });
-
-        io.to(roomCode).emit('gameStarted', { message: 'Game has started!' });
+app.get('/latest-room', (req, res) => {
+    console.log('Latest-room route called'); // Lokitus reitin alussa
+    
+    const latestRoomCode = Object.keys(gameRooms).pop(); // Haetaan viimeisin huonekoodi
+    if (latestRoomCode) {
+        console.log(`Latest room code fetched: ${latestRoomCode}`); // Lokitetaan huonekoodi
+        res.json({ success: true, roomCode: latestRoomCode });
     } else {
-        console.log(`Room not found: ${roomCode}`);
-        res.status(404).json({ success: false, message: 'Room not found.' });
+        console.log('No active room found'); // Lokitetaan virhetilanne
+        res.status(404).json({ success: false, message: 'No active room found.' });
     }
 });
 
