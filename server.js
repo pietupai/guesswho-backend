@@ -28,20 +28,15 @@ const gameRooms = {}; // Pelihuoneiden tallennus
 
 // Luo huone
 app.post('/create-room', (req, res) => {
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     const { hostName } = req.body;
+
     if (!hostName) {
         return res.status(400).json({ success: false, message: 'Host name is required.' });
     }
 
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    gameRooms[roomCode] = {
-        hostName,
-        players: [hostName],
-        messages: [],
-    };
-
-    console.log(`Room created: ${roomCode}`);
+    gameRooms[roomCode] = { hostName, players: [hostName], messages: [] }; // Add Host to players list
+    console.log(`Room created: ${roomCode} with Host: ${hostName}`);
     res.json({ success: true, roomCode });
 });
 
