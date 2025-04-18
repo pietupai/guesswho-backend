@@ -15,21 +15,23 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-// Luo huone ja tallenna huonekoodi
+// Luo huone ja tallenna huonekoodi sekä hostin nimi
 app.post('/create-room', (req, res) => {
+    const { hostName } = req.body;
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    gameRooms[roomCode] = { players: [], messages: [], status: 'waiting' };
+    gameRooms[roomCode] = { players: [hostName], messages: [], status: 'waiting' }; // Host lisätään pelaajalistaan
     latestRoomCode = roomCode; // Päivitetään viimeisin huonekoodi
-    console.log(`Room created: ${roomCode}`);
+    console.log(`Room created: ${roomCode} by host: ${hostName}`);
     res.json({ success: true, roomCode });
 });
 
 // Palauta viimeisin huonekoodi
 app.get('/latest-room', (req, res) => {
     if (latestRoomCode) {
-        console.log(`Latest room: ${latestRoomCode}`);
+        console.log(`Latest room code found: ${latestRoomCode}`);
         res.json({ success: true, roomCode: latestRoomCode });
     } else {
+        console.log('No active room available.');
         res.status(404).json({ success: false, message: 'No active room available.' });
     }
 });
@@ -94,16 +96,16 @@ app.get('/game-status/:roomCode', (req, res) => {
     }
 });
 
-// Viestin lähetys
+// Viestin lähetys chatissa
 app.post('/send-message', (req, res) => {
-    const { roomCode, message } = req.body;
+    const { roomCode, message, senderName } = req.body;
 
     if (gameRooms[roomCode]) {
         if (!gameRooms[roomCode].messages) {
             gameRooms[roomCode].messages = [];
         }
-        gameRooms[roomCode].messages.push(message); // Tallennetaan viesti huoneeseen
-        console.log(`Message sent to room ${roomCode}: ${message}`);
+        gameRooms[roomCode].messages.push({ senderName, message }); // Tallennetaan nimi ja viesti
+        console.log(`Message from ${senderName} in room ${roomCode}: ${message}`);
         res.json({ success: true });
     } else {
         console.log(`Room not found: ${roomCode}`);
@@ -111,7 +113,7 @@ app.post('/send-message', (req, res) => {
     }
 });
 
-// Viestien haku
+// Viestien haku chatissa
 app.get('/get-messages/:roomCode', (req, res) => {
     const roomCode = req.params.roomCode;
 
