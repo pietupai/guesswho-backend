@@ -27,6 +27,7 @@ app.post('/create-room', (req, res) => {
 // Palauta viimeisin huonekoodi
 app.get('/latest-room', (req, res) => {
     if (latestRoomCode) {
+        console.log(`Latest room: ${latestRoomCode}`);
         res.json({ success: true, roomCode: latestRoomCode });
     } else {
         res.status(404).json({ success: false, message: 'No active room available.' });
