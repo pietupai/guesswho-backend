@@ -14,12 +14,24 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-// Lokitus: Huoneen luonti
+let latestRoomCode = ''; // Muuttuja viimeisimmälle huonekoodille
+
+// Huoneen luonti
 app.post('/create-room', (req, res) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     gameRooms[roomCode] = { players: [] };
-    console.log(`Room created: ${roomCode}`); // Loggaa huonekoodi
+    latestRoomCode = roomCode; // Tallennetaan viimeisin huonekoodi
+    console.log(`Room created: ${roomCode}`);
     res.json({ success: true, roomCode });
+});
+
+// Viimeisimmän huonekoodin palauttaminen
+app.get('/latest-room', (req, res) => {
+    if (latestRoomCode) {
+        res.json({ success: true, roomCode: latestRoomCode });
+    } else {
+        res.json({ success: false, message: 'No active room available.' });
+    }
 });
 
 // Lokitus: Pelaajan liittyminen
