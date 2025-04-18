@@ -116,6 +116,7 @@ app.post('/send-message', (req, res) => {
 // Viestien haku chatissa
 app.get('/get-messages/:roomCode', (req, res) => {
     const roomCode = req.params.roomCode;
+    console.log(`Fetching messages for room: ${roomCode}`); // Lokita pyyntö
 
     if (gameRooms[roomCode]) {
         const messages = gameRooms[roomCode].messages || [];
@@ -125,3 +126,4 @@ app.get('/get-messages/:roomCode', (req, res) => {
         res.status(404).json({ success: false, message: 'Room not found.' });
     }
 });
+
