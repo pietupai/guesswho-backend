@@ -104,7 +104,8 @@ app.post('/send-message', (req, res) => {
         if (!gameRooms[roomCode].messages) {
             gameRooms[roomCode].messages = [];
         }
-        gameRooms[roomCode].messages.push({ senderName, message }); // Tallennetaan nimi ja viesti
+        // Tallennetaan viesti oikeassa muodossa
+        gameRooms[roomCode].messages.push({ senderName, message });
         console.log(`Message from ${senderName} in room ${roomCode}: ${message}`);
         res.json({ success: true });
     } else {
@@ -112,6 +113,7 @@ app.post('/send-message', (req, res) => {
         res.status(404).json({ success: false, message: 'Room not found.' });
     }
 });
+
 
 // Viestien haku chatissa
 app.get('/get-messages/:roomCode', (req, res) => {
