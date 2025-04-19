@@ -1,0 +1,15 @@
+{
+  "name": "guesswho-backend",
+  "version": "1.0.0",
+  "description": "Backend for Guess Who game using WebSocket",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.3.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.19.0"
+  }
+}
